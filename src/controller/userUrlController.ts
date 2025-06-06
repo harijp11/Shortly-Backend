@@ -132,8 +132,9 @@ export const redirect = async (req: Request, res: Response): Promise<void> => {
 
 export const getUrls = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    console.log("user userId",req.userId)
-    const urls = await Url.find({ userId: req.userId }).sort({ createdAt: -1 }).lean();
+    console.log("user userId", req.user?.userId);
+
+const urls = await Url.find({ userId: req.user?.userId }).sort({ createdAt: -1 }).lean();
 
     const urlsWithStats = urls.map((url) => ({
       id: url._id.toString(),
