@@ -3,7 +3,7 @@ import {
   createUrl, 
   redirect, 
   getUrls, 
-  getAnalytics, 
+  // getAnalytics, 
   deleteUrl 
 } from '../controller/userUrlController';
 import { verifyToken } from '../middlewares/verifyAuth';
@@ -14,7 +14,7 @@ router.post('/shorten', verifyToken, createUrl);
 
 router.get('/urls', verifyToken, getUrls);
 
-router.get('/analytics/:urlId', verifyToken, getAnalytics);
+// router.get('/analytics/:urlId', verifyToken, getAnalytics);
 
 
 router.delete('/urls/:urlId', verifyToken, deleteUrl);

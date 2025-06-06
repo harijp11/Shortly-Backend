@@ -155,59 +155,59 @@ export const getUrls = async (req: AuthenticatedRequest, res: Response): Promise
   }
 };
 
-export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { urlId } = req.params;
+// export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+//   try {
+//     const { urlId } = req.params;
 
-    const url = await Url.findOne({ _id: urlId, userId: req.userId }).lean();
-    if (!url) {
-      res.status(404).json({ success: false, message: 'URL not found' });
-      return;
-    }
+//     const url = await Url.findOne({ _id: urlId, userId: req.userId }).lean();
+//     if (!url) {
+//       res.status(404).json({ success: false, message: 'URL not found' });
+//       return;
+//     }
 
-    const analytics = {
-      totalClicks: url.totalClicks,
-      clicksByDate: {} as Record<string, number>,
-      browsers: {} as Record<string, number>,
-      countries: {} as Record<string, number>,
-      referrers: {} as Record<string, number>,
-    };
+//     const analytics = {
+//       totalClicks: url.totalClicks,
+//       clicksByDate: {} as Record<string, number>,
+//       browsers: {} as Record<string, number>,
+//       countries: {} as Record<string, number>,
+//       referrers: {} as Record<string, number>,
+//     };
 
-    url.clicks.forEach((click) => {
-      const date = click.timestamp.toISOString().split('T')[0];
-      analytics.clicksByDate[date] = (analytics.clicksByDate[date] || 0) + 1;
+//     url.clicks.forEach((click) => {
+//       const date = click.timestamp.toISOString().split('T')[0];
+//       analytics.clicksByDate[date] = (analytics.clicksByDate[date] || 0) + 1;
 
-      let browser = 'Other';
-      const userAgent = click.userAgent || 'Unknown';
-      if (userAgent.includes('Chrome')) browser = 'Chrome';
-      else if (userAgent.includes('Firefox')) browser = 'Firefox';
-      else if (userAgent.includes('Safari')) browser = 'Safari';
-      else if (userAgent.includes('Edge')) browser = 'Edge';
-      analytics.browsers[browser] = (analytics.browsers[browser] || 0) + 1;
+//       let browser = 'Other';
+//       const userAgent = click.userAgent || 'Unknown';
+//       if (userAgent.includes('Chrome')) browser = 'Chrome';
+//       else if (userAgent.includes('Firefox')) browser = 'Firefox';
+//       else if (userAgent.includes('Safari')) browser = 'Safari';
+//       else if (userAgent.includes('Edge')) browser = 'Edge';
+//       analytics.browsers[browser] = (analytics.browsers[browser] || 0) + 1;
 
-      const country = click.country || 'Unknown';
-      analytics.countries[country] = (analytics.countries[country] || 0) + 1;
+//       const country = click.country || 'Unknown';
+//       analytics.countries[country] = (analytics.countries[country] || 0) + 1;
 
-      const referrer = click.referrer || 'Direct';
-      analytics.referrers[referrer] = (analytics.referrers[referrer] || 0) + 1;
-    });
+//       const referrer = click.referrer || 'Direct';
+//       analytics.referrers[referrer] = (analytics.referrers[referrer] || 0) + 1;
+//     });
 
-    res.json({
-      success: true,
-      data: {
-        url: {
-          shortUrl: url.shortUrl,
-          longUrl: url.longUrl,
-          createdAt: url.createdAt.toISOString(),
-        },
-        analytics,
-      },
-    });
-  } catch (error) {
-    console.error('Analytics error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch analytics' });
-  }
-};
+//     res.json({
+//       success: true,
+//       data: {
+//         url: {
+//           shortUrl: url.shortUrl,
+//           longUrl: url.longUrl,
+//           createdAt: url.createdAt.toISOString(),
+//         },
+//         analytics,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Analytics error:', error);
+//     res.status(500).json({ success: false, message: 'Failed to fetch analytics' });
+//   }
+// };
 
 export const deleteUrl = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
