@@ -3,7 +3,9 @@ import { Url } from '../models/urlSchema';
 import crypto from 'crypto';
 
 export interface AuthenticatedRequest extends Request {
-  userId?: string;
+  user?:{
+    userId?: string;
+  }
 }
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000/api/user';
@@ -31,7 +33,7 @@ const isValidUrl = (url: string): boolean => {
 export const createUrl = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { longUrl, customUrl } = req.body as { longUrl: string; customUrl?: string };
-    const userId = req.userId;
+    const userId = req!.user!.userId || "";
 
     if (!longUrl) {
       res.status(400).json({ success: false, message: 'URL is required' });
@@ -132,7 +134,7 @@ export const redirect = async (req: Request, res: Response): Promise<void> => {
 
 export const getUrls = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    console.log("user userId", req.user?.userId);
+   
 
 const urls = await Url.find({ userId: req.user?.userId }).sort({ createdAt: -1 }).lean();
 
@@ -157,71 +159,21 @@ const urls = await Url.find({ userId: req.user?.userId }).sort({ createdAt: -1 }
   }
 };
 
-// export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-//   try {
-//     const { urlId } = req.params;
 
-//     const url = await Url.findOne({ _id: urlId, userId: req.userId }).lean();
-//     if (!url) {
-//       res.status(404).json({ success: false, message: 'URL not found' });
-//       return;
-//     }
-
-//     const analytics = {
-//       totalClicks: url.totalClicks,
-//       clicksByDate: {} as Record<string, number>,
-//       browsers: {} as Record<string, number>,
-//       countries: {} as Record<string, number>,
-//       referrers: {} as Record<string, number>,
-//     };
-
-//     url.clicks.forEach((click) => {
-//       const date = click.timestamp.toISOString().split('T')[0];
-//       analytics.clicksByDate[date] = (analytics.clicksByDate[date] || 0) + 1;
-
-//       let browser = 'Other';
-//       const userAgent = click.userAgent || 'Unknown';
-//       if (userAgent.includes('Chrome')) browser = 'Chrome';
-//       else if (userAgent.includes('Firefox')) browser = 'Firefox';
-//       else if (userAgent.includes('Safari')) browser = 'Safari';
-//       else if (userAgent.includes('Edge')) browser = 'Edge';
-//       analytics.browsers[browser] = (analytics.browsers[browser] || 0) + 1;
-
-//       const country = click.country || 'Unknown';
-//       analytics.countries[country] = (analytics.countries[country] || 0) + 1;
-
-//       const referrer = click.referrer || 'Direct';
-//       analytics.referrers[referrer] = (analytics.referrers[referrer] || 0) + 1;
-//     });
-
-//     res.json({
-//       success: true,
-//       data: {
-//         url: {
-//           shortUrl: url.shortUrl,
-//           longUrl: url.longUrl,
-//           createdAt: url.createdAt.toISOString(),
-//         },
-//         analytics,
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Analytics error:', error);
-//     res.status(500).json({ success: false, message: 'Failed to fetch analytics' });
-//   }
-// };
 
 export const deleteUrl = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { urlId } = req.params as {urlId:string};
 
-    const deletedUrl = await Url.findOneAndDelete({ _id: urlId, userId: req.userId });
+    const userId = req!.user!.userId || undefined
+
+    const deletedUrl = await Url.findOneAndDelete({ _id: urlId, userId});
     if (!deletedUrl) {
       res.status(404).json({ success: false, message: 'URL not found' });
       return;
     }
 
-    res.json({ success: true, message: 'URL deleted successfully' });
+    res.status(200).json({ success: true, message: 'URL deleted successfully' });
   } catch (error) {
     console.error('Delete error:', error);
     res.status(500).json({ success: false, message: 'Failed to delete URL' });

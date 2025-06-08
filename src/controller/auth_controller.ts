@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { RefrteshToken } from "../models/refreshTokenSchema";
 
 export const register = async (req: Request, res: Response) => {
+  console.log("reached at registration")
   const { name, email, password, phoneNumber } = req.body;
 
   try {
@@ -48,7 +49,7 @@ export const login = async (req: Request, res: Response) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ success:false,message: "User not existing" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
