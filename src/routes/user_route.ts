@@ -4,7 +4,8 @@ import {
   redirect, 
   getUrls, 
   // getAnalytics, 
-  deleteUrl 
+  deleteUrl, 
+  logout
 } from '../controller/userUrlController';
 import { verifyToken } from '../middlewares/verifyAuth';
 
@@ -20,5 +21,7 @@ router.get('/urls', verifyToken, getUrls);
 router.delete('/urls/:urlId', verifyToken, deleteUrl);
 
 router.get('/:shortCode', redirect);
+
+router.post("/logout",verifyToken,logout)
 
 export default router;

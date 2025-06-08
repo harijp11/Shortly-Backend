@@ -179,3 +179,16 @@ export const deleteUrl = async (req: AuthenticatedRequest, res: Response): Promi
     res.status(500).json({ success: false, message: 'Failed to delete URL' });
   }
 };
+
+export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try{
+    res.clearCookie("accessToken")
+    res.clearCookie("refreshToken")
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    })
+  }catch(error){
+    console.log("Logout error",error)
+  }
+}
