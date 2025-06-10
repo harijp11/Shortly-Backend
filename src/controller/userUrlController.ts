@@ -104,6 +104,7 @@ export const createUrl = async (req: AuthenticatedRequest, res: Response): Promi
 
 export const redirect = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("Reaching redirect ...")
     const { shortCode } = req.params;
     const urlDoc = await Url.findOne({ shortCode });
     if (!urlDoc) {
