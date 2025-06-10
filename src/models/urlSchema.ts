@@ -69,6 +69,10 @@ const UrlSchema: Schema = new Schema({
       default: 'Unknown' 
     }
   }],
+  totalClicks:{
+    type: Number,
+    default:0
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 
@@ -82,9 +86,9 @@ const UrlSchema: Schema = new Schema({
   toObject: { virtuals: true }
 });
 
-UrlSchema.virtual('totalClicks').get(function(this: IUrl) {
-  return this.clicks ? this.clicks.length : 0;
-});
+// UrlSchema.virtual('totalClicks').get(function(this: IUrl) {
+//   return this.clicks ? this.clicks.length : 0;
+// });
 
 UrlSchema.index({ userId: 1, createdAt: -1 });
 UrlSchema.index({ shortCode: 1 });
