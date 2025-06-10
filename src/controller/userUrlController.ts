@@ -115,6 +115,7 @@ export const redirect = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ success: false, message: 'Invalid URL format' });
       return;
     }
+    console.log("country",req.headers['cf-ipcountry'])
     const clickData = {
       timestamp: new Date(),
       referrer: req.headers.referer || 'Direct',
