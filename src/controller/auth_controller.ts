@@ -6,6 +6,8 @@ import {
 } from "../utils/token/generateToken";
 import bcrypt from "bcryptjs";
 import { RefrteshToken } from "../models/refreshTokenSchema";
+import { ERROR_MESSAGES, HTTP_STATUS, SUCCESS_MESSAGES } from "../shared/constants";
+import { COOKIE_CONFIG } from "../shared/config";
 
 export const register = async (req: Request, res: Response) => {
   console.log("reached at registration")
@@ -14,7 +16,10 @@ export const register = async (req: Request, res: Response) => {
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: ERROR_MESSAGES.EMAIL_EXISTS,
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -27,9 +32,9 @@ export const register = async (req: Request, res: Response) => {
     });
     await newUser.save();
 
-    res.status(201).json({
-      success:true,
-      message: "User registered successfully",
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: SUCCESS_MESSAGES.REGISTRATION_SUCCESS,
       user: {
         _id: newUser._id,
         name: newUser.name,
@@ -38,7 +43,7 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    res.status(500).json({success:false, message: "Server error", error });
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success:false, message: ERROR_MESSAGES.SERVER_ERROR,});
   }
 };
 
@@ -49,13 +54,16 @@ export const login = async (req: Request, res: Response) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ success:false,message: "User not existing" });
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: ERROR_MESSAGES.USER_NOT_FOUND,
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({success:false, message: "Invalid email or password" });
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({success:false, message: ERROR_MESSAGES.INVALID_CREDENTIALS, });
     }
 
     const accessToken = generateAccessToken(user._id.toString());
@@ -67,21 +75,21 @@ export const login = async (req: Request, res: Response) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     }).save();
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-       maxAge: 24 * 60 * 60 * 1000 * 7,
-    });
+   res.cookie(COOKIE_CONFIG.REFRESH_TOKEN_NAME, refreshToken, {
+  httpOnly: COOKIE_CONFIG.HTTP_ONLY,
+  secure: COOKIE_CONFIG.SECURE,
+  maxAge: COOKIE_CONFIG.MAX_AGE,
+});
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000 
-    });
+res.cookie(COOKIE_CONFIG.ACCESS_TOKEN_NAME, accessToken, {
+  httpOnly: COOKIE_CONFIG.HTTP_ONLY,
+  secure: COOKIE_CONFIG.SECURE,
+  maxAge: COOKIE_CONFIG.MAX_AGE,
+});
 
-    res.status(200).json({
+    res.status(HTTP_STATUS.OK).json({
       success:true,
-      message: "Login successful",
+      message: SUCCESS_MESSAGES.LOGIN_SUCCESS,
       user: {
         id: user._id,
         name: user.name,
@@ -90,6 +98,6 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success:false,message: "Server error", error });
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success:false,message: ERROR_MESSAGES.SERVER_ERROR });
   }
 };

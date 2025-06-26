@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Url } from "../models/urlSchema";
 import crypto from "crypto";
+import { ERROR_MESSAGES, HTTP_STATUS, SUCCESS_MESSAGES } from "../shared/constants";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -9,6 +10,8 @@ export interface AuthenticatedRequest extends Request {
 }
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:5000/api/user";
+
+const urlRegex = /^(https?:\/\/)([\w-]+\.)+[\w-]{2,}(\/[\w\-._~:/?#[\]@!$&'()*+,;=%%]*)?(\?.*)?(#.*)?$/i;
 
 const ensureProtocol = (url: string): string => {
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -26,8 +29,8 @@ const generateShortCode = (length: number = 6): string => {
 
 const isValidUrl = (url: string): boolean => {
   try {
-    new URL(url);
-    return true;
+    new URL(url); 
+    return urlRegex.test(url); 
   } catch {
     return false;
   }
@@ -45,13 +48,17 @@ export const createUrl = async (
     const userId = req!.user!.userId || "";
 
     if (!longUrl) {
-      res.status(400).json({ success: false, message: "URL is required" });
+      res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ success: false, message: ERROR_MESSAGES.MISSING_PARAMETERS });
       return;
     }
 
     const validUrl = ensureProtocol(longUrl);
-    if (!isValidUrl(validUrl)) {
-      res.status(400).json({ success: false, message: "Invalid URL format" });
+     if (!isValidUrl(validUrl)) {
+      res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ success: false, message: ERROR_MESSAGES.VALIDATION_ERROR });
       return;
     }
 
@@ -59,9 +66,10 @@ export const createUrl = async (
     if (customUrl) {
       const existingCustom = await Url.findOne({ shortCode: customUrl }).lean();
       if (existingCustom) {
-        res
-          .status(400)
-          .json({ success: false, message: "Custom URL already exists" });
+        res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: ERROR_MESSAGES.CUSTOM_URL_EXISTS,
+        });
         return;
       }
       shortCode = customUrl;
@@ -75,6 +83,16 @@ export const createUrl = async (
     }
 
     const shortUrl = `${BASE_URL}/${shortCode}`;
+
+    const urlExist = await Url.findOne({longUrl,userId})
+
+    if(urlExist){
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success:false,
+        message:ERROR_MESSAGES.URL_EXISTING
+      })
+      return
+    }
 
     const url = new Url({
       longUrl: validUrl,
@@ -94,9 +112,9 @@ export const createUrl = async (
       throw new Error("");
     }
 
-    res.status(201).json({
+    res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: "URL shortened successfully",
+      message: SUCCESS_MESSAGES.URL_SHORTENED,
       data: {
         id: urlWithVirtuals._id.toString(),
         shortUrl: urlWithVirtuals.shortUrl,
@@ -109,9 +127,10 @@ export const createUrl = async (
     });
   } catch (error) {
     console.error("URL creation error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to create short URL" });
+   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: ERROR_MESSAGES.SERVER_ERROR,
+    });
   }
 };
 
@@ -121,16 +140,22 @@ export const redirect = async (req: Request, res: Response): Promise<void> => {
     const { shortCode } = req.params;
     const urlDoc = await Url.findOne({ shortCode });
     if (!urlDoc) {
-      res.status(404).json({ success: false, message: "Short URL not found" });
+      res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.SHORT_URL_NOT_FOUND,
+      });
       return;
     }
 
     const redirectUrl = ensureProtocol(urlDoc.longUrl);
     if (!isValidUrl(redirectUrl)) {
-      res.status(400).json({ success: false, message: "Invalid URL format" });
+     res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: ERROR_MESSAGES.VALIDATION_ERROR,
+      });
       return;
     }
-    console.log("country", req.headers["cf-ipcountry"]);
+  
     const clickData = {
       timestamp: new Date(),
       referrer: req.headers.referer || "Direct",
@@ -142,11 +167,14 @@ export const redirect = async (req: Request, res: Response): Promise<void> => {
     urlDoc.lastClicked = new Date();
     urlDoc.totalClicks += 1;
     await urlDoc.save();
-    console.log("redirect url", redirectUrl);
+   
     res.redirect(302, redirectUrl);
   } catch (error) {
     console.error("Redirect error:", error);
-    res.status(500).json({ success: false, message: "An error occurred" });
+   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: ERROR_MESSAGES.SERVER_ERROR,
+    });
   }
 };
 
@@ -173,13 +201,16 @@ export const getUrls = async (
           : null,
     }));
 
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       data: urlsWithStats,
     });
   } catch (error) {
     console.error("Error fetching URLs:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch URLs" });
+   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: ERROR_MESSAGES.SERVER_ERROR,
+    });
   }
 };
 
@@ -193,17 +224,24 @@ export const deleteUrl = async (
     const userId = req!.user!.userId || undefined;
 
     const deletedUrl = await Url.findOneAndDelete({ _id: urlId, userId });
-    if (!deletedUrl) {
-      res.status(404).json({ success: false, message: "URL not found" });
+     if (!deletedUrl) {
+      res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.REQUEST_NOT_FOUND,
+      });
       return;
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "URL deleted successfully" });
+   res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: SUCCESS_MESSAGES.DELETE_SUCCESS,
+    });
   } catch (error) {
     console.error("Delete error:", error);
-    res.status(500).json({ success: false, message: "Failed to delete URL" });
+   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: ERROR_MESSAGES.SERVER_ERROR,
+    });
   }
 };
 
@@ -214,9 +252,9 @@ export const logout = async (
   try {
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
-    res.status(200).json({
+   res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: "Logged out successfully",
+      message: SUCCESS_MESSAGES.LOGOUT_SUCCESS,
     });
   } catch (error) {
     console.log("Logout error", error);
